@@ -1,53 +1,56 @@
-# Shared Canvas
+# Common · shared-canvas
 
-A shared space for ideas, designed to keep working offline.
+A quiet shared whiteboard that keeps your edits when the connection drops.
 
 [![Build](https://github.com/A-Mardi/shared-canvas/actions/workflows/build.yml/badge.svg)](https://github.com/A-Mardi/shared-canvas/actions/workflows/build.yml)
 
-**Status: initial scaffold.** This repository contains a runnable frontend and language-specific starter code. The product features described in the roadmap are not implemented. There are no performance or adoption claims yet.
+**Working local beta · 0.1.0.** Go, React, and TypeScript, with Yjs.
 
-## Stack
+![Common beta](docs/images/beta-desktop.png)
 
-Go, React, TypeScript; Yjs planned.
+## What works
 
-## Run the frontend
+- Notes, boxes, ellipses, connectors, dragging, pan, zoom, and local undo/redo.
+- Concurrent note editing with Yjs text CRDTs; IndexedDB stores the local document.
+- Room links, remote cursors, reconnect synchronization, and JSON import/export.
+- Go WebSocket relay with a checksummed append log and sync-before-broadcast persistence.
 
-Requires Node.js 22.12+; CI uses Node.js 24. From the repository root:
+## Run
 
-```sh
-cd web
-npm ci
-npm run dev
-```
-
-Open http://127.0.0.1:5173. Each project uses the same development ports; run one project at a time or adjust `web/vite.config.js` and the service address.
-
-`npm run check` checks TypeScript. `npm run build` checks types and creates a production frontend build. `npm run preview` serves that static build; it does not include an API proxy or backend.
-
-## Run the service
-
-Install Go 1.26 or newer. In a second terminal, from the repository root:
+Requires Node.js 22.12+ and Go 1.26+. From the repository root:
 
 ```sh
-cd server
-go run ./cmd/server
+npm ci --prefix web
+npm run build --prefix web
+node scripts/start.mjs
 ```
 
-The service binds to http://127.0.0.1:8080 and only exposes `GET /api/health`. The frontend dev server proxies `/api` to it. The health button verifies that the starter service is running; it does not verify any planned product feature.
+Open http://127.0.0.1:8091. The launcher builds Go and serves the frontend from one origin. Set GO_BINARY if Go is not on PATH. You can pass `--addr`, `--web`, and `--data` to the launcher. Local data is stored in ignored `.data/`; keep it when restarting.
 
-Check the service with `go vet ./...` and `go build ./...` from `server/`.
+Open the same board link in two tabs. Add a note, edit it in both, then disable networking in one tab. Reconnect to see the text merge.
 
-## Repository layout
+For frontend development, leave the service running and use `npm run dev --prefix web` at http://127.0.0.1:5176; Vite proxies the service routes.
 
-- `web/` — React + TypeScript frontend
-- `server/` — standard-library Go HTTP service
-- `docs/` — scope, component boundaries, and implementation milestones
-- `.github/workflows/build.yml` — frontend and language-specific build checks
+## Verify
 
-## Development
+```sh
+go -C server test ./...
+go -C server vet ./...
+npm run build --prefix web
+npx --prefix web playwright install chromium
+npm test --prefix web
+```
 
-Read [the roadmap](docs/ROADMAP.md), [architecture notes](docs/ARCHITECTURE.md), and [contribution guidance](CONTRIBUTING.md).
+Browser tests launch an isolated service and temporary data directory. CI additionally runs Go's race detector. Go tests cover partial-log recovery and checksum corruption. The Playwright scenario uses two isolated browser contexts, edits the same note while one is offline, checks convergence after reconnect, reloads the board, and checks mobile overflow. This validates two-peer behavior; the 12-peer limit is a configured ceiling, not a measured capacity result.
+
+## Beta boundaries
+
+Designed for trusted collaborators: there are no accounts, access controls, or private-room guarantees. The server accepts opaque Yjs updates. Limits are 12 connections per room, 32 loaded rooms, 2 MiB per update, and a 32 MiB log per room. The UI limits boards to 500 items. Reconnect sends full document state; log compaction is not implemented. Offline editing works in an already loaded tab; there is no service worker guaranteeing an offline page load. Desktop editing is the primary experience; touch has pan and zoom buttons.
+
+## Engineering notes
+
+[Architecture](docs/ARCHITECTURE.md) explains the boundaries and tradeoffs. [Roadmap](docs/ROADMAP.md) separates implemented features from future work. [Contributing](CONTRIBUTING.md) covers checks and reproducible reports.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). Dependency licenses remain their own; see [third-party notices](THIRD_PARTY_NOTICES.md).

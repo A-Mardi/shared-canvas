@@ -1,20 +1,15 @@
-# Architecture notes
+# Common architecture
 
-## Current scaffold
+## Document model
 
-The web application displays project status and planned milestones. A loopback-only HTTP service exposes a scaffold health response at `/api/health`. It does not implement product APIs.
+Each room has a Y.Doc containing an item map. Each item is a nested Y.Map; note content is a Y.Text. Text input changes are translated into minimal insert/delete operations. Concurrent text edits merge; concurrent changes to the same scalar property use Yjs conflict resolution. Undo tracks this client's UI transactions, rather than undoing remote collaborators' work. Drag previews stay local until release.
 
-## Intended responsibilities
+## Storage and transport
 
-The Go service will own rooms and persistence. The browser will own editing and local state. Yjs integration and synchronization semantics are planned, not implemented.
+IndexedDB restores the local document before opening the socket. The client sends its state on connection and streams local updates thereafter. The server first replays its history, then forwards live updates. Yjs deduplicates repeated operations. Cursor messages and presence counts are ephemeral.
 
-## Development decisions
+Each persisted record has a length, CRC32 checksum, and update payload. The server writes and syncs the record before broadcasting. Startup truncates an incomplete trailing record; a checksum mismatch fails the room open instead of silently ignoring corruption. CRC32 is for accidental damage, not authentication. Slow peers have bounded queues and are disconnected when they fall behind.
 
-- Keep each component independently buildable.
-- Add dependencies only when a concrete feature needs them.
-- Keep long-running work out of the UI thread.
-- Define cancellation and failure behavior alongside the main workflow.
-- Measure performance before making optimization claims.
-- Use existing libraries where appropriate and attribute their contribution.
+## Tradeoffs
 
-These notes describe an initial direction. Record significant changes here as the implementation develops.
+The relay does not interpret CRDT state. This keeps the Go boundary small but means malicious updates cannot be validated as board operations, and histories grow on reconnect. Authentication, state-vector synchronization, compaction, disk quotas across restarts, and room lifecycle management are prerequisites for a public service. Export JSON before reaching the room log limit.

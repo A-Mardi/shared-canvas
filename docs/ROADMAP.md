@@ -1,24 +1,16 @@
-# Roadmap
+# Common roadmap
 
-This is planned work, not a list of delivered features.
+## Shipped in the local beta
 
-## Foundation
+- Notes, boxes, ellipses, connectors, dragging, pan, zoom, and local undo/redo.
+- Concurrent note editing with Yjs text CRDTs; IndexedDB stores the local document.
+- Room links, remote cursors, reconnect synchronization, and JSON import/export.
+- Go WebSocket relay with a checksummed append log and sync-before-broadcast persistence.
 
-- [x] Create a runnable React + TypeScript starter.
-- [x] Add language-specific starter code and build checks.
-- [x] Document setup, scope, and component boundaries.
+## Next, not implemented
 
-## First useful release
+- State-vector synchronization and compact snapshots.
+- Room ownership, access controls, and eviction.
+- Keyboard navigation of shapes and richer touch gestures.
 
-- [ ] Create and manipulate notes, shapes, and connectors.
-- [ ] Persist boards locally and restore them after reload.
-- [ ] Synchronize concurrent edits and recover after reconnection.
-- [ ] Measure rendering performance on large boards.
-
-## Release evidence
-
-- [ ] Exercise the complete workflow on realistic inputs.
-- [ ] Add tests for core behavior and meaningful failure cases.
-- [ ] Publish reproducible benchmarks with hardware, inputs, and methodology.
-- [ ] Check keyboard use, empty states, progress, cancellation, and errors.
-- [ ] Record an accurate demo and update the README with implemented features.
+The README and tests describe current behavior. Roadmap items are not resume claims or capacity guarantees.
