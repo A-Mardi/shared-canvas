@@ -54,3 +54,7 @@ Designed for trusted collaborators: there are no accounts, access controls, or p
 ## License
 
 [MIT](LICENSE). Dependency licenses remain their own; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+### Keyboard editing
+
+Tab to a note or shape. Arrow keys move it by one board unit; Shift+Arrow moves ten. Enter focuses its text editor. Ctrl/Command+D duplicates the focused shape with a small offset; the inspector also has a Duplicate button. Duplication is its own undo step and edits synchronize normally. Text inputs keep their native keyboard behavior.

@@ -11,6 +11,10 @@
 
 - State-vector synchronization and compact snapshots.
 - Room ownership, access controls, and eviction.
-- Keyboard navigation of shapes and richer touch gestures.
+- Keyboard creation and connection of shapes, and richer touch gestures.
 
 The README and tests describe current behavior. Roadmap items are not resume claims or capacity guarantees.
+
+## Added after the initial beta
+
+Focusable shapes, keyboard nudging, text-edit focus, duplication, and two-client undo coverage.

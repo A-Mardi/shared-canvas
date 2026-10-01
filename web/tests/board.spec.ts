@@ -30,3 +30,32 @@ test('two clients merge offline text edits and retain the board after reload', a
   expect(errors).toEqual([]);
   await other.close();
 });
+
+test('keyboard moves and duplicates a shape with collaborative undo', async ({ page, browser }) => {
+  await page.goto('/#room=keys-' + crypto.randomUUID().slice(0, 8));
+  const other = await browser.newPage();
+  await other.goto(page.url());
+  await page.getByRole('button', { name: 'Add note', exact: true }).click();
+  await expect(other.getByTestId('board-item')).toHaveCount(1);
+  const shape = page.getByTestId('board-item').first();
+  const original = await shape.getAttribute('transform');
+  await shape.focus();
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(shape).not.toHaveAttribute('transform', original!);
+  const moved = await shape.getAttribute('transform');
+  await expect(other.getByTestId('board-item')).toHaveAttribute('transform', moved!);
+  await page.keyboard.press('Control+d');
+  await expect(page.getByTestId('board-item')).toHaveCount(2);
+  await expect(other.getByTestId('board-item')).toHaveCount(2);
+  await expect(page.getByTestId('board-item').last()).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Note text')).toBeFocused();
+  await page.getByLabel('Note text').fill('Editable copy');
+  await expect(other.getByTestId('board-item').last()).toContainText('Editable copy');
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(page.getByTestId('board-item').last()).toContainText('A new idea');
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(other.getByTestId('board-item')).toHaveCount(1);
+  await expect(shape).toHaveAttribute('transform', moved!);
+  await other.close();
+});

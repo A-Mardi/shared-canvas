@@ -21,7 +21,18 @@ export default function App() {
     textInput = useRef<HTMLTextAreaElement>(null),
     drag = useRef<{ id: string; x: number; y: number; ox: number; oy: number } | null>(null),
     lastCursor = useRef(0),
+    focusAfterUpdate = useRef(''),
     linkStart = useRef('');
+  useEffect(() => {
+    if (!focusAfterUpdate.current) return;
+    const shape = svg.current?.querySelector<SVGElement>(
+      '[data-board-id="' + focusAfterUpdate.current + '"]',
+    );
+    if (shape) {
+      shape.focus();
+      focusAfterUpdate.current = '';
+    }
+  }, [items]);
   useEffect(() => {
     const update = () => setItems(board.snapshot());
     board.items.observeDeep(update);
@@ -49,6 +60,38 @@ export default function App() {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).matches('input,textarea,select')) return;
+      const focusedItem = (e.target as Element)
+        .closest('[data-board-id]')
+        ?.getAttribute('data-board-id');
+      if (focusedItem) {
+        const item = board.snapshot().find((i) => i.id === focusedItem);
+        const directions: Record<string, [number, number]> = {
+          ArrowLeft: [-1, 0],
+          ArrowRight: [1, 0],
+          ArrowUp: [0, -1],
+          ArrowDown: [0, 1],
+        };
+        if (item && directions[e.key]) {
+          e.preventDefault();
+          const [dx, dy] = directions[e.key],
+            distance = e.shiftKey ? 10 : 1;
+          board.patch(item.id, {
+            x: Math.max(-10000, Math.min(10000, item.x + dx * distance)),
+            y: Math.max(-10000, Math.min(10000, item.y + dy * distance)),
+          });
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          textInput.current?.focus();
+          return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+          e.preventDefault();
+          duplicate(focusedItem);
+          return;
+        }
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
         e.shiftKey ? board.undo.redo() : board.undo.undo();
@@ -67,6 +110,27 @@ export default function App() {
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [board, selected]);
+  function duplicate(id: string) {
+    const snapshot = board.snapshot(),
+      item = snapshot.find((i) => i.id === id);
+    if (!item || item.kind === 'link') return;
+    if (snapshot.length >= 500) {
+      setNotice('This board is limited to 500 items.');
+      return;
+    }
+    const copy = {
+      ...item,
+      id: crypto.randomUUID(),
+      x: Math.min(10000, item.x + 24),
+      y: Math.min(10000, item.y + 24),
+    };
+    board.undo.stopCapturing();
+    focusAfterUpdate.current = copy.id;
+    board.add(copy);
+    board.undo.stopCapturing();
+    setSelected(copy.id);
+    setNotice('Duplicated. Arrow keys move a focused shape; Shift moves 10 units.');
+  }
   const point = (e: { clientX: number; clientY: number }) => {
     const matrix = svg.current?.getScreenCTM();
     const p = matrix
@@ -362,6 +426,12 @@ export default function App() {
                   <g
                     key={item.id}
                     data-testid="board-item"
+                    data-board-id={item.id}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={item.kind + ': ' + (item.text.slice(0, 80) || 'Untitled')}
+                    aria-pressed={selected === item.id}
+                    onFocus={() => setSelected(item.id)}
                     transform={'translate(' + item.x + ' ' + item.y + ')'}
                     className="board-item"
                     onDoubleClick={() => textInput.current?.focus()}
@@ -496,6 +566,9 @@ export default function App() {
                   </label>
                 </div>
               </>
+            )}
+            {picked.kind !== 'link' && (
+              <button onClick={() => duplicate(picked.id)}>Duplicate</button>
             )}
             <button
               onClick={() => {
